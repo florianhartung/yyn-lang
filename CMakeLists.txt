@@ -3,4 +3,4 @@ project(yyn_lang C)
 
 set(CMAKE_C_STANDARD 99)
 
-add_executable(yyn_lang src/main.c src/include/token.h src/include/lexer.h src/lexer.c src/token.c src/include/list.h src/list.c)
+add_executable(yyn_lang src/main.c src/include/token.h src/include/lexer.h src/lexer.c src/token.c src/include/list.h src/list.c src/include/yyn.h src/yyn.c src/include/util.h)

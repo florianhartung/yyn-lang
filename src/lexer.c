@@ -1,9 +1,11 @@
 #include <malloc.h>
 #include <stdio.h>
+#include <string.h>
 #include "include/token.h"
 #include "include/lexer.h"
+#include "include/util.h"
 
-lexer_state_t* init_lexer(char* src) {
+static lexer_state_t* init_lexer(char* src) {
     lexer_state_t* lexer_state = malloc(sizeof(lexer_state_t));
     lexer_state->current_index = 0;
     lexer_state->src = src;
@@ -12,47 +14,67 @@ lexer_state_t* init_lexer(char* src) {
     return lexer_state;
 }
 
-void advance(lexer_state_t* lexer) {
+static void advance(lexer_state_t* lexer) {
     lexer->current_index += 1;
     lexer->current_character = lexer->src[lexer->current_index];
 }
 
-token_t* accept_token(lexer_state_t* lexer, int token_type) {
+static token_t* parse_identifier(lexer_state_t* lexer) {
+    int identifier_length = 0;
+    while (is_alpha(lexer->current_character)) {
+        identifier_length += 1;
+        advance(lexer);
+    }
+
+    char* identifier_name = calloc(identifier_length + 1, sizeof(char));
+    strncpy(identifier_name, lexer->src + lexer->current_index - identifier_length, identifier_length);
+    token_t* token = init_token(TOKEN_IDENTIFIER);
+    token->token_data->identifier_data = identifier_name;
+
+    return token;
+}
+
+static token_t* eat_token(lexer_state_t* lexer, int token_type) {
     advance(lexer);
     return init_token(token_type);
 }
 
-void expect_character(lexer_state_t* lexer, char expected_character) {
-    advance(lexer);
-    if (lexer->current_character != expected_character) {
-        fprintf(stderr, "Expected character '%s' token. Found '%s' instead.", expected_character,
-                lexer->current_character);
-        exit(1);
+static token_t* next_token(lexer_state_t* lexer) { // NOLINT(misc-no-recursion)
+    switch (lexer->current_character) {
+        case 0:
+            return eat_token(lexer, TOKEN_EOF);
+        case '(':
+            return eat_token(lexer, TOKEN_LPAREN);
+        case ')':
+            return eat_token(lexer, TOKEN_RPAREN);
+        case '{':
+            return eat_token(lexer, TOKEN_LBRACE);
+        case '}':
+            return eat_token(lexer, TOKEN_RBRACE);
+        case '\n':
+            return eat_token(lexer, TOKEN_NEWLINE);
+        case ' ': {
+            advance(lexer);
+            return next_token(lexer);
+        }
     }
-}
 
-token_t* advance_token(lexer_state_t* lexer) {
-    if (lexer->current_character == 0) {
-        return accept_token(lexer, TOKEN_EOF);
+    if (is_alpha(lexer->current_character)) {
+        return parse_identifier(lexer);
     }
-    if (lexer->current_character == 'h') {
-        expect_character(lexer, 'w');
-        return accept_token(lexer, TOKEN_HELLO_WORLD);
-    }
-    if (lexer->current_character == ';') {
-        return accept_token(lexer, TOKEN_SEMICOLON);
-    }
-    fprintf(stderr, "Unknown token %s at %i", lexer->current_character, lexer->current_index);
+
+    fprintf(stderr, "Unknown token '%c' at %i", lexer->current_character, lexer->current_index);
     exit(1);
 }
 
 list_t* lexer_read_tokens(char* src) {
     lexer_state_t* lexer_state = init_lexer(src);
     list_t* tokens = init_list(sizeof(token_t*));
+    tokens->element_free_function = (free_function_t) token_free;
 
     token_t* token;
     do {
-        token = advance_token(lexer_state);
+        token = next_token(lexer_state);
         list_append(tokens, token);
     } while (token->type != TOKEN_EOF);
     return tokens;

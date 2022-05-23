@@ -22,3 +22,10 @@ void list_append(list_t* list, void* element) {
 void* list_get(list_t* list, size_t index) {
     return list->data[index];
 }
+
+void list_free(list_t* list) {
+    for (int i = 0; i < list->size; ++i) {
+        list->element_free_function(list_get(list, i));
+    }
+    free(list);
+}

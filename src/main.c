@@ -1,16 +1,16 @@
 #include <stdio.h>
 #include <malloc.h>
-#include "include/lexer.h"
+#include "include/yyn.h"
 
-int main() {
-    list_t* tokens = lexer_read_tokens("hw;\0");
+int main(int argc, char** argv) {
+    // if(argc <= 1) {
+    //   fprintf(stderr, "No yyn source file given!");
+    //   exit(1);
+    //}
 
-    for (int i = 0; i < tokens->size; ++i) {
-        token_t* token = list_get(tokens, i);
-        printf("%s\n", token_to_string(token));
-        free(token);
-    }
-    free(tokens);
+    yyn_compile("fun main() {\n"
+                "someIdentifier\n"
+                "}");
 
     return 0;
 }
