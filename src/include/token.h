@@ -7,13 +7,25 @@ typedef struct TOKEN_POSITION_STRUCT {
     int to;
 } token_position_t;
 
+typedef enum {
+    KEYWORD_FUNCTION,
+    KEYWORD_HELLO
+} keyword_t;
+
+static const char* keywords[] = {
+        [KEYWORD_FUNCTION] = "fun",
+        [KEYWORD_HELLO] = "hello"
+};
+
 typedef union {
-    char* identifier_data;
+    char* identifier_name;
+    keyword_t keyword;
 } token_data_t;
 
 typedef struct TOKEN_STRUCT {
     enum {
         TOKEN_IDENTIFIER,
+        TOKEN_KEYWORD,
         TOKEN_NEWLINE,
         TOKEN_LPAREN,
         TOKEN_RPAREN,

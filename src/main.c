@@ -9,7 +9,7 @@ int main(int argc, char** argv) {
     //}
 
     yyn_compile("fun main() {\n"
-                "someIdentifier\n"
+                "\thello\n"
                 "}");
 
     return 0;

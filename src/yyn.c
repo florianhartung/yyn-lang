@@ -10,7 +10,7 @@ static void debug_print_token(token_t* token) {
 }
 
 void yyn_compile(char* src) {
-    list_t* tokens = lexer_read_tokens(src);
+    list_t* tokens = lexer_parse_token(src);
 
     for (int i = 0; i < tokens->size; ++i) {
         token_t* token = list_get(tokens, i);

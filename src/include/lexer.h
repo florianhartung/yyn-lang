@@ -9,4 +9,4 @@ typedef struct LEXER_STRUCT {
     char current_character; // TODO: Convert to index pointing at the current character
 } lexer_state_t;
 
-list_t* lexer_read_tokens(char* src);
+list_t* lexer_parse_token(char* src);

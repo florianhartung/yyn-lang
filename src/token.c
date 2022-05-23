@@ -16,6 +16,8 @@ const char* token_type_to_string(int type) {
     switch (type) {
         case TOKEN_IDENTIFIER:
             return "TOKEN_IDENTIFIER";
+        case TOKEN_KEYWORD:
+            return "TOKEN_KEYWORD";
         case TOKEN_NEWLINE:
             return "TOKEN_NEWLINE";
         case TOKEN_EOF:
@@ -36,7 +38,9 @@ const char* token_type_to_string(int type) {
 const char* token_data_to_string(token_t* token) {
     switch (token->type) {
         case TOKEN_IDENTIFIER:
-            return token->token_data->identifier_data;
+            return token->token_data->identifier_name;
+        case TOKEN_KEYWORD:
+            return keywords[token->token_data->keyword];
         default:
             return "";
     }
