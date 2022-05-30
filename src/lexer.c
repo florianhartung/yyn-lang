@@ -81,7 +81,7 @@ static token_t* parse_next_token(lexer_state_t* lexer) { // NOLINT(misc-no-recur
     exit(1);
 }
 
-list_t* lexer_parse_token(char* src) {
+list_t* lexer_read_tokens(char* src) {
     lexer_state_t* lexer = init_lexer(src);
 
     list_t* tokens = init_list(sizeof(token_t*));

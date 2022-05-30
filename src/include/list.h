@@ -18,4 +18,4 @@ void list_append(list_t* list, void* element);
 
 void* list_get(list_t* list, size_t index);
 
-void list_free(list_t* list);
+void free_list(list_t* list);
