@@ -7,6 +7,12 @@
 
 #define ARRAY_LEN(arr) (sizeof(arr) / sizeof(void*))
 
+typedef struct LEXER_STATE_STRUCT {
+    char* src;
+    size_t current_index;
+    char current_character; // TODO: Convert to index pointing at the current character
+} lexer_state_t;
+
 static lexer_state_t* init_lexer(char* src) {
     lexer_state_t* lexer_state = malloc(sizeof(lexer_state_t));
     lexer_state->current_index = 0;
@@ -47,30 +53,29 @@ static token_t* parse_identifier_keyword(lexer_state_t* lexer) {
     return token;
 }
 
-static token_t* eat_token(lexer_state_t* lexer, int token_type) {
+static token_t* advance_with_token(lexer_state_t* lexer, int token_type) {
     advance(lexer);
     return init_token(token_type);
 }
 
 static token_t* parse_next_token(lexer_state_t* lexer) { // NOLINT(misc-no-recursion)
+    while (is_whitespace(lexer->current_character)) {
+        advance(lexer);
+    }
+
     switch (lexer->current_character) {
         case 0:
-            return eat_token(lexer, TOKEN_EOF);
+            return advance_with_token(lexer, TOKEN_EOF);
         case '(':
-            return eat_token(lexer, TOKEN_LPAREN);
+            return advance_with_token(lexer, TOKEN_LPAREN);
         case ')':
-            return eat_token(lexer, TOKEN_RPAREN);
+            return advance_with_token(lexer, TOKEN_RPAREN);
         case '{':
-            return eat_token(lexer, TOKEN_LBRACE);
+            return advance_with_token(lexer, TOKEN_LBRACE);
         case '}':
-            return eat_token(lexer, TOKEN_RBRACE);
+            return advance_with_token(lexer, TOKEN_RBRACE);
         case '\n':
-            return eat_token(lexer, TOKEN_NEWLINE);
-        case ' ':
-        case '\t': {
-            advance(lexer);
-            return parse_next_token(lexer);
-        }
+            return advance_with_token(lexer, TOKEN_NEWLINE);
     }
 
     if (is_alpha(lexer->current_character)) {
