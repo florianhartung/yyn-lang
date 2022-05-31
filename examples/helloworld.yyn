@@ -1,0 +1,12 @@
+fun main() {
+    hello
+    hello
+
+    hello
+}
+fun test() {
+    hello
+}
+fun emptyfunc() {
+
+}
