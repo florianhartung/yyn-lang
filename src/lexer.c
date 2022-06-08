@@ -27,6 +27,30 @@ static void advance(lexer_state_t* lexer) {
     lexer->current_character = lexer->src[lexer->current_index];
 }
 
+static token_t* parse_integer(lexer_state_t* lexer) {
+    int integer_length = 0;
+    while (is_number(lexer->current_character)) {
+        integer_length += 1;
+        advance(lexer);
+    }
+
+    if(is_alpha(lexer->current_character)) {
+        fprintf(stderr, "Unexpected token '%s'. An integer must not be followed by a alphanumeric character.");
+        exit(1);
+    }
+
+    char* integer_str = calloc(integer_length + 1, sizeof(char));
+    strncpy(integer_str, lexer->src + lexer->current_index - integer_length, integer_length);
+
+    int int_value = atoi(integer_str); // NOLINT(cert-err34-c)
+    free(integer_str);
+
+    token_t* token = init_token(TOKEN_INTEGER);
+    token->token_data->int_value = int_value;
+
+    return token;
+}
+
 static token_t* parse_identifier_keyword(lexer_state_t* lexer) {
     int identifier_length = 0;
     while (is_alpha(lexer->current_character)) {
@@ -74,12 +98,23 @@ static token_t* parse_next_token(lexer_state_t* lexer) { // NOLINT(misc-no-recur
             return advance_with_token(lexer, TOKEN_LBRACE);
         case '}':
             return advance_with_token(lexer, TOKEN_RBRACE);
+        case '=':
+            return advance_with_token(lexer, TOKEN_EQUALS);
+        case '+':
+            advance(lexer);
+            if(lexer->current_character == '=') {
+                return advance_with_token(lexer, TOKEN_ASSIGNMENT_ADD);
+            }
         case '\n':
             return advance_with_token(lexer, TOKEN_NEWLINE);
     }
 
     if (is_alpha(lexer->current_character)) {
         return parse_identifier_keyword(lexer);
+    }
+
+    if(is_number(lexer->current_character)) {
+        return parse_integer(lexer);
     }
 
     fprintf(stderr, "Unknown token '%c' at %i", lexer->current_character, lexer->current_index);

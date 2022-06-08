@@ -1,12 +1,18 @@
 fun main() {
-    hello
-    hello
-
-    hello
+    printAC()
+    printNewLine()
+    exit 0
 }
-fun test() {
-    hello
-}
-fun emptyfunc() {
 
+fun printAC() {
+    int x = 30
+    x += x
+    x += 5
+    printchar x
+    x += 2
+    printchar x
+}
+
+fun printNewLine() {
+    printchar 10
 }

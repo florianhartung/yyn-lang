@@ -13,26 +13,7 @@ token_t* init_token(int type) {
 
 
 const char* token_type_to_string(int type) {
-    switch (type) {
-        case TOKEN_IDENTIFIER:
-            return "TOKEN_IDENTIFIER";
-        case TOKEN_KEYWORD:
-            return "TOKEN_KEYWORD";
-        case TOKEN_NEWLINE:
-            return "TOKEN_NEWLINE";
-        case TOKEN_EOF:
-            return "TOKEN_EOF";
-        case TOKEN_LPAREN:
-            return "TOKEN_LPAREN";
-        case TOKEN_RPAREN:
-            return "TOKEN_RPAREN";
-        case TOKEN_LBRACE:
-            return "TOKEN_LBRACE";
-        case TOKEN_RBRACE:
-            return "TOKEN_RBRACE";
-        default:
-            return "undef-token-type";
-    }
+    return token_types[type];
 }
 
 const char* token_data_to_string(token_t* token) {

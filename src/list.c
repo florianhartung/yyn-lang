@@ -5,6 +5,7 @@ list_t* init_list(size_t size_per_element) {
     list_t* list = malloc(sizeof(list_t));
     list->size = 0;
     list->element_size = size_per_element;
+    list->element_free_function = 0;
 
     return list;
 }
@@ -24,8 +25,10 @@ void* list_get(list_t* list, size_t index) {
 }
 
 void free_list(list_t* list) {
-    for (int i = 0; i < list->size; ++i) {
-        list->element_free_function(list_get(list, i));
+    if(list->element_free_function) {
+        for (int i = 0; i < list->size; ++i) {
+            list->element_free_function(list_get(list, i));
+        }
     }
     free(list);
 }

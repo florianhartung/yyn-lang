@@ -2,7 +2,16 @@
 
 #include <stddef.h>
 
-typedef void (*free_function_t)(void*);
+#define LIST_INDEX(line) list_index##line
+#define LIST_FOREACH(list, element_declaration, action) LIST_FOREACH_INNER(list, element_declaration, action, __COUNTER__)
+#define LIST_FOREACH_INNER(list, element_declaration, action, index_suffix) \
+    for(int LIST_INDEX(index_suffix) = 0; LIST_INDEX(index_suffix) < list->size; ++LIST_INDEX(index_suffix)){ \
+        element_declaration = list_get(list, LIST_INDEX(index_suffix)); \
+        action \
+    } \
+
+
+typedef void (* free_function_t)(void*);
 
 typedef struct LIST_STRUCT {
     size_t element_size;

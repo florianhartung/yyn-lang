@@ -1,5 +1,5 @@
 #pragma once
 
-void yyn_compile(char* src);
+char* yyn_compile(char* src);
 
-void yyn_compile_file(char* filename);
+void yyn_compile_file(char* filename, char* out_filename);

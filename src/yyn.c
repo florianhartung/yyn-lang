@@ -5,7 +5,7 @@
 #include "include/ast.h"
 #include "include/util.h"
 #include "include/parser.h"
-
+#include "include/cg_nasm_win32.h"
 
 static void debug_print_tokens(list_t* tokens) {
     printf("------------- Tokens ------------\n");
@@ -22,7 +22,11 @@ static void debug_print_ast(ast_t* ast) {
     ast_print(ast);
 }
 
-void yyn_compile(char* src) {
+static void debug_print_compiled(char* compiled) {
+    printf("------------- Compiled -------------\n%s", compiled);
+}
+
+char* yyn_compile(char* src) {
     list_t* tokens = lexer_read_tokens(src);
 
     debug_print_tokens(tokens);
@@ -31,11 +35,16 @@ void yyn_compile(char* src) {
 
     debug_print_ast(root_ast);
 
-    free(root_ast);
+    char* compiled = code_generation_nasm_win32(root_ast);
+
+    debug_print_compiled(compiled);
+
+    return compiled;
 }
 
-void yyn_compile_file(char* filename) {
+void yyn_compile_file(char* filename, char* out_filename) {
     char* src = read_file(filename);
-    yyn_compile(src);
+    char* compiled = yyn_compile(src);
+    write_file(out_filename, compiled);
     free(src);
 }
