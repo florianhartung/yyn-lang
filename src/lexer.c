@@ -105,6 +105,9 @@ static token_t* parse_next_token(lexer_state_t* lexer) { // NOLINT(misc-no-recur
             if(lexer->current_character == '=') {
                 return advance_with_token(lexer, TOKEN_ASSIGNMENT_ADD);
             }
+            break;
+        case '<':
+            return advance_with_token(lexer, TOKEN_LESS_THAN);
         case '\n':
             return advance_with_token(lexer, TOKEN_NEWLINE);
     }

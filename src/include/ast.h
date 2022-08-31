@@ -44,6 +44,21 @@ typedef struct ASSIGNMENT_DATA_STRUCT {
     struct AST_STRUCT* expression;
 } assignment_data_t;
 
+typedef struct WHILE_LOOP_DATA_STRUCT {
+    struct AST_STRUCT* expression_child;
+    struct AST_STRUCT* child_compound;
+} while_loop_data_t;
+
+typedef enum BOOL_EXPRESSION_OPERAND_STRUCT {
+    BOOL_LESS_THAN
+} bool_expression_operand_t;
+
+typedef struct BOOL_EXPRESSION_DATA_STRUCT {
+    struct AST_STRUCT* left;
+    bool_expression_operand_t operand;
+    struct AST_STRUCT* right;
+} bool_expression_data_t;
+
 typedef struct AST_STRUCT {
     enum {
         AST_FUNCTION_DEF,
@@ -55,9 +70,12 @@ typedef struct AST_STRUCT {
         AST_VARIABLE,
         AST_FUNCTION_CALL,
         AST_ASSIGNMENT_ADD,
+        AST_ASSIGNMENT,
         AST_EXPRESSION,
         AST_INTEGER,
-        AST_VARIABLE_ACCESS
+        AST_VARIABLE_ACCESS,
+        AST_WHILE_LOOP,
+        AST_BOOL_EXPRESSION
     } type;
 
     union {
@@ -71,6 +89,8 @@ typedef struct AST_STRUCT {
         assignment_data_t* assignment_data;
         struct AST_STRUCT* expression_child;
         int integer_value;
+        while_loop_data_t* while_loop_data;
+        bool_expression_data_t* bool_expression_data;
     };
 } ast_t;
 

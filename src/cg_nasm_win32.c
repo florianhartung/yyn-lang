@@ -1,3 +1,5 @@
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "misc-no-recursion"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -184,7 +186,6 @@ static char* build_compiled(compiled_t* compiled) {
             LIST_FOREACH(compiled->global_initializations,
             char* global_initialization,
             {
-                string_builder_append(result, "\t");
                 string_builder_append(result, global_initialization);
                 string_builder_append(result, "\n");
             })
@@ -193,7 +194,6 @@ static char* build_compiled(compiled_t* compiled) {
         LIST_FOREACH(nasm_function->instructions,
         char* instruction,
         {
-            string_builder_append(result, "\t");
             string_builder_append(result, instruction);
             string_builder_append(result, "\n");
         })
@@ -209,6 +209,7 @@ static char* build_compiled(compiled_t* compiled) {
 
 void add_instruction(list_t* instruction_list, int count, ...) {
     string_builder_t* final_instruction = init_string_builder();
+    string_builder_append(final_instruction, "\t");
 
     va_list ap;
     va_start(ap, count);
@@ -220,12 +221,39 @@ void add_instruction(list_t* instruction_list, int count, ...) {
         } else {
             string_builder_append(final_instruction, "\t");
         }
-        string_builder_append(final_instruction, va_arg(ap, char*));
-
+        char* s = iasprintf("%-6s", va_arg(ap, char*));
+        string_builder_append(final_instruction, s);
+        free(s);
     }
     va_end(ap);
 
     list_append(instruction_list, string_builder_build(final_instruction));
+}
+
+char* predeclare_label(char* label_name) {
+    static int label_counter = 0;
+
+    return iasprintf("l%s%d", label_name, label_counter++);
+}
+
+void add_predeclared_label(list_t* instruction_list, char* predeclared_label) {
+    list_append(instruction_list, iasprintf("%s:", predeclared_label));
+}
+
+char* add_label(list_t* instruction_list, char* label_name) {
+    char* label_identifier = predeclare_label(label_name);
+    add_predeclared_label(instruction_list, label_identifier);
+    return label_identifier;
+}
+
+void code_generation_prolog(list_t* instructions) {
+    I(instructions, "push", "ebp");
+    I(instructions, "mov", "ebp, esp");
+}
+
+void code_generation_epilog(list_t* instructions) {
+    I(instructions, "mov", "esp, ebp");
+    I(instructions, "pop" , "ebp");
 }
 
 void code_generation_ast_exit(compiled_t* compiled, list_t* parent_instructions, ast_t* ast_exit) {
@@ -268,7 +296,7 @@ static void code_generation_ast_expression(compiled_t* compiled, list_t* parent_
             break;
         }
         default:
-            fprintf(stderr, "Unknown expression ast int type %d", child->type);
+            fprintf(stderr, "Unknown expression_child ast int type %d", child->type);
             exit(1);
     }
 }
@@ -278,20 +306,22 @@ void code_generation_ast_print_char(compiled_t* compiled, list_t* parent_instruc
 
     code_generation_ast_expression(compiled, parent_instructions, ast_print_char->expression_child, "eax");
 
-    // allocate 1 byte buffer
-    I(parent_instructions, "sub", "esp, 1");
+    // prolog & allocate 1 byte buffer
+    code_generation_prolog(parent_instructions);
 
-    I(parent_instructions, "mov", "[ebp-1], al");
+    I(parent_instructions, "sub", "esp, 4");
+
+    I(parent_instructions, "mov", "[ebp-4], al");
     I(parent_instructions, "push", "0");
     I(parent_instructions, "push", "0");
     I(parent_instructions, "push", "1");
-    I(parent_instructions, "lea ", "eax, [ebp-1]");
+    I(parent_instructions, "lea ", "eax, [ebp-4]");
     I(parent_instructions, "push", "eax");
     I(parent_instructions, "push", iasprintf("%s [%s]", SIZES_STRINGS[DEFAULT_VARIABLES.std_out.size], DEFAULT_VARIABLES.std_out.name));
     I(parent_instructions, "call", WIN_API.write_file);
 
-    // deallocate 1 byte buffer
-    I(parent_instructions, "add", "esp, 1");
+    // epilog
+    code_generation_epilog(parent_instructions);
 }
 
 
@@ -315,6 +345,11 @@ static void code_generation_ast_assignment(compiled_t* compiled, list_t* parent_
             I(parent_instructions, "mov", iasprintf("[ebp-%d], eax", variable->stack_offset));
             break;
         }
+        case AST_ASSIGNMENT: {
+            code_generation_ast_expression(compiled, parent_instructions, ast_assignment->assignment_data->expression, "eax");
+            I(parent_instructions, "mov", iasprintf("[ebp-%d], eax", variable->stack_offset));
+            break;
+        }
         default:
             fprintf(stderr, "Unknown ast assignment of int type %d", ast_assignment->type);
             exit(1);
@@ -325,8 +360,38 @@ void code_generation_ast_function_call(compiled_t* compiled, list_t* parent_inst
     I(parent_instructions, "call", ast_variable->function_identifier);
 }
 
-#pragma clang diagnostic push
-#pragma ide diagnostic ignored "misc-no-recursion"
+void code_generation_ast_compound(compiled_t* compiled, list_t* instructions, ast_t* compound);
+
+void code_generation_ast_while_loop(compiled_t* compiled, list_t* parent_instructions, ast_t* ast_while_loop) {
+    bool_expression_data_t* bool_expression_data = ast_while_loop->while_loop_data->expression_child->expression_child->bool_expression_data;
+    char* before_while_check = predeclare_label("while");
+    char* after_loop = predeclare_label("whileend");
+    char* compound_start = predeclare_label("whilestart");
+
+    add_predeclared_label(parent_instructions, before_while_check);
+    code_generation_ast_expression(compiled, parent_instructions, bool_expression_data->left, "eax");
+    code_generation_ast_expression(compiled, parent_instructions, bool_expression_data->right, "ebx");
+    I(parent_instructions, "cmp", "eax, ebx");
+
+    switch (bool_expression_data->operand) {
+        case BOOL_LESS_THAN:
+            I(parent_instructions, "jl", compound_start);
+            break;
+        default:
+            fprintf(stderr, "Unknown ast bool expression operand %d", bool_expression_data->operand);
+            exit(1);
+    }
+
+    I(parent_instructions, "jmp", after_loop);
+
+    add_predeclared_label(parent_instructions, compound_start);
+
+    code_generation_ast_compound(compiled, parent_instructions, ast_while_loop->while_loop_data->child_compound);
+
+    I(parent_instructions, "jmp", before_while_check);
+
+    add_predeclared_label(parent_instructions, after_loop);
+}
 
 void code_generation_ast_compound(compiled_t* compiled, list_t* instructions, ast_t* compound) {
     LIST_FOREACH(compound->compound_data->children, ast_t* child, {
@@ -350,11 +415,15 @@ void code_generation_ast_compound(compiled_t* compiled, list_t* instructions, as
             case AST_FUNCTION_CALL:
                 code_generation_ast_function_call(compiled, instructions, child);
                 break;
+            case AST_ASSIGNMENT:
             case AST_ASSIGNMENT_ADD:
                 code_generation_ast_assignment(compiled, instructions, child);
                 break;
+            case AST_WHILE_LOOP:
+                code_generation_ast_while_loop(compiled, instructions, child);
+                break;
             default:
-                fprintf(stderr, "Unexpected ast compound child of type %d", child->type);
+                fprintf(stderr, "Unexpected ast child_compound child of type %d", child->type);
                 exit(1);
         }
     })
@@ -371,7 +440,6 @@ void variables_in_context(list_t* variables, variable_context_t* variable_contex
     })
 }
 
-#pragma clang diagnostic pop
 void code_generation_ast_function(compiled_t* compiled, ast_t* ast_function) {
     char* main_function_name = generate_function_identifier("main");
 
@@ -387,11 +455,7 @@ void code_generation_ast_function(compiled_t* compiled, ast_t* ast_function) {
     })
     nasm_function_t* function = init_nasm_function(ast_function->function_def_data->identifier);
 
-    // ast_function prolog
-    I(function->instructions, "push", "ebp");
-    I(function->instructions, "mov ", "ebp, esp");
-
-
+    code_generation_prolog(function->instructions);
 
     // TODO: Add arguments to stack
     // ast_function stack variable allocation
@@ -413,9 +477,7 @@ void code_generation_ast_function(compiled_t* compiled, ast_t* ast_function) {
 
     code_generation_ast_compound(compiled, function->instructions, ast_function->function_def_data->child_compound);
 
-    // ast_function epilog
-    I(function->instructions, "mov", "esp, ebp");
-    I(function->instructions, "pop", "ebp");
+    code_generation_epilog(function->instructions);
     I(function->instructions, "ret");
 
     list_append(compiled->functions, function);
@@ -455,3 +517,4 @@ char* code_generation_nasm_win32(ast_t* root) {
     free_ast(root);
     return build_compiled(compiled);
 }
+#pragma clang diagnostic pop

@@ -27,9 +27,15 @@ ast_t* init_ast(int type) { // NOLINT(misc-no-recursion)
             ast->function_def_data = calloc(1, sizeof(function_def_data_t));
             ast->function_def_data->child_compound = init_ast(AST_COMPOUND);
             break;
+        case AST_ASSIGNMENT:
         case AST_ASSIGNMENT_ADD:
             ast->assignment_data = calloc(1, sizeof(assignment_data_t));
             break;
+        case AST_WHILE_LOOP:
+            ast->while_loop_data = calloc(1, sizeof(while_loop_data_t));
+            break;
+        case AST_BOOL_EXPRESSION:
+            ast->bool_expression_data = calloc(1, sizeof(bool_expression_data_t));
         default:
             break;
     }
@@ -80,7 +86,7 @@ char* ast_print_child(ast_t* ast, char* prefix) { // NOLINT(misc-no-recursion)
         case AST_COMPOUND: {
             char* text_header;
             if (ast->type == AST_COMPOUND) {
-                text_header = "compound";
+                text_header = "child_compound";
             } else {
                 text_header = "root";
             }
@@ -130,8 +136,14 @@ char* ast_print_child(ast_t* ast, char* prefix) { // NOLINT(misc-no-recursion)
         }
         case AST_ASSIGNMENT_ADD: {
             string_builder_append(final_text,
-                                  iasprintf("%svariable \"%s\" += %d\n", prefix, ast->assignment_data->variable->name,
-                                            ast->assignment_data->expression->expression_child->integer_value));
+                                  iasprintf("%svariable \"%s\" += %s\n", prefix, ast->assignment_data->variable->name,
+                                            ast_print_child(ast->assignment_data->expression, prefix)));
+            break;
+        }
+        case AST_ASSIGNMENT: {
+            string_builder_append(final_text,
+                                  iasprintf("%svariable \"%s\" = %s\n", prefix, ast->assignment_data->variable->name,
+                                            ast_print_child(ast->assignment_data->expression, prefix)));
             break;
         }
         case AST_EXPRESSION: {
@@ -142,10 +154,24 @@ char* ast_print_child(ast_t* ast, char* prefix) { // NOLINT(misc-no-recursion)
                 case AST_VARIABLE_ACCESS:
                     string_builder_append(final_text, iasprintf("\"%s\"", ast->expression_child->variable_data->name));
                     break;
+                case AST_BOOL_EXPRESSION:
+                    string_builder_append(final_text,
+                                          iasprintf("%s < %s",
+                                                    ast_print_child(ast->expression_child->bool_expression_data->left,
+                                                                    ""),
+                                                    ast_print_child(ast->expression_child->bool_expression_data->right,
+                                                                    "")));
+                    break;
                 default:
                     string_builder_append(final_text, "---");
                     break;
             }
+            break;
+        }
+        case AST_WHILE_LOOP: {
+            string_builder_append(final_text, iasprintf("%swhile(%s):\n", prefix,
+                                                        ast_print_child(ast->while_loop_data->expression_child, "")));
+            string_builder_append(final_text, ast_print_child(ast->while_loop_data->child_compound, prefix));
             break;
         }
         default:

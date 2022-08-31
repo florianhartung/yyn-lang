@@ -130,9 +130,31 @@ static ast_t* parse_expression(parser_state_t* parser, variable_context_t* varia
             break;
         }
         default:
-            fprintf(stderr, "Unknown expression token %s", token_to_string(parser->current_token));
+            fprintf(stderr, "Unknown expression child token %s", token_to_string(parser->current_token));
             exit(1);
     }
+
+    return expression;
+}
+
+static ast_t* parse_bool_expression(parser_state_t* parser, variable_context_t* variable_context) {
+    ast_t* expression = init_ast(AST_EXPRESSION);
+    ast_t* bool_expression = init_ast(AST_BOOL_EXPRESSION);
+    expression->expression_child = bool_expression;
+
+    bool_expression->bool_expression_data->left = parse_expression(parser, variable_context);
+
+    switch(parser->current_token->type) {
+        case TOKEN_LESS_THAN:
+            bool_expression->bool_expression_data->operand = BOOL_LESS_THAN;
+            parser_advance(parser);
+            break;
+        default:
+            fprintf(stderr, "Unknown boolean operand token %s", token_to_string(parser->current_token));
+            exit(1);
+    }
+
+    bool_expression->bool_expression_data->right = parse_expression(parser, variable_context);
 
     return expression;
 }
@@ -149,6 +171,15 @@ static ast_t* parse_assignment(parser_state_t* parser, variable_context_t* varia
     switch (parser->current_token->type) {
         case TOKEN_ASSIGNMENT_ADD: {
             assignment = init_ast(AST_ASSIGNMENT_ADD);
+            assignment->assignment_data->variable = variable;
+
+            parser_advance(parser);
+
+            assignment->assignment_data->expression = parse_expression(parser, variable_context);
+            break;
+        }
+        case TOKEN_EQUALS: {
+            assignment = init_ast(AST_ASSIGNMENT);
             assignment->assignment_data->variable = variable;
 
             parser_advance(parser);
@@ -215,6 +246,17 @@ parse_statement(parser_state_t* parser, variable_context_t* parent_variable_cont
 
                     break;
                 }
+                case KEYWORD_WHILE: {
+                    parser_advance(parser);
+                    statement = init_ast(AST_WHILE_LOOP);
+
+                    parser_advance_with_token(parser, TOKEN_LPAREN);
+                    statement->while_loop_data->expression_child = parse_bool_expression(parser, parent_variable_context);
+                    parser_advance_with_token(parser, TOKEN_RPAREN);
+
+                    statement->while_loop_data->child_compound = parse_compound(parser, parent_variable_context, undeclared_used_functions);
+                    break;
+                }
                 default:
                     fprintf(stderr, "Unexpected keyword '%s'", keywords[parser->current_token->token_data->keyword]);
                     exit(1);
@@ -229,6 +271,7 @@ parse_statement(parser_state_t* parser, variable_context_t* parent_variable_cont
         }
         case TOKEN_IDENTIFIER: {
             switch (parser_peek(parser)->type) {
+                case TOKEN_EQUALS:
                 case TOKEN_ASSIGNMENT_ADD: {
                     statement = parse_assignment(parser, parent_variable_context);
                     break;

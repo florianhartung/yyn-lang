@@ -1,15 +1,35 @@
 fun main() {
-    printAC()
+    count()
+    printAlphabet()
     printNewLine()
-    exit 0
+    exit 1
+}
+
+fun count() {
+    int i = 11
+    while(i < 11) {
+        int c = 1
+        c += i
+        c += 49
+        printchar c
+        i += 2
+    }
+}
+
+fun printAlphabet() {
+    int i = 66
+    while(i < 92) {
+        printchar i
+        i += 2
+    }
 }
 
 fun printAC() {
-    int x = 30
+    int x = 31
     x += x
-    x += 5
+    x += 6
     printchar x
-    x += 2
+    x += 3
     printchar x
 }
 

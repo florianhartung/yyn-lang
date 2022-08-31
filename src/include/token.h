@@ -12,7 +12,8 @@ typedef enum {
     KEYWORD_HELLO,
     KEYWORD_EXIT,
     KEYWORD_PRINT_CHAR,
-    KEYWORD_INT
+    KEYWORD_INT,
+    KEYWORD_WHILE
 } keyword_t;
 
 static const char* keywords[] = {
@@ -20,7 +21,8 @@ static const char* keywords[] = {
         [KEYWORD_HELLO] = "hello",
         [KEYWORD_EXIT] = "exit",
         [KEYWORD_PRINT_CHAR] = "printchar",
-        [KEYWORD_INT] = "int"
+        [KEYWORD_INT] = "int",
+        [KEYWORD_WHILE] = "while"
 };
 
 typedef union {
@@ -41,7 +43,8 @@ typedef struct TOKEN_STRUCT {
         TOKEN_EOF,
         TOKEN_INTEGER,
         TOKEN_EQUALS,
-        TOKEN_ASSIGNMENT_ADD
+        TOKEN_ASSIGNMENT_ADD,
+        TOKEN_LESS_THAN
     } type;
 
     token_data_t* token_data;
@@ -60,7 +63,8 @@ static char* token_types[] = {
         [TOKEN_EOF] = "TOKEN_EOF",
         [TOKEN_INTEGER] = "TOKEN_INTEGER",
         [TOKEN_EQUALS] = "TOKEN_EQUALS",
-        [TOKEN_ASSIGNMENT_ADD] = "TOKEN_ASSIGNMENT_ADD"
+        [TOKEN_ASSIGNMENT_ADD] = "TOKEN_ASSIGNMENT_ADD",
+        [TOKEN_LESS_THAN] = "TOKEN_LESS_THAN"
 };
 
 token_t* init_token(int type);
